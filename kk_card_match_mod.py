@@ -110,6 +110,8 @@ def save_card_mod_info(card_mod_info_dir, base_path, file_name):
 
 # 加载仓库的mod json数据
 def load_mod_repository_json_file():
+    if not os.path.exists(MOD_REPOSITORY_JSON_PATH):
+        generate_mod_json_file_repository()
     try:
         with open(MOD_REPOSITORY_JSON_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -119,6 +121,8 @@ def load_mod_repository_json_file():
 
 # 获取游戏的mod json数据
 def load_mod_game_json_file():
+    if not os.path.exists(GAME_MOD_JSON_PATH):
+        generate_mod_json_file_game()
     try:
         with open(GAME_MOD_JSON_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -165,4 +169,6 @@ def analysis_card():
 if __name__ == '__main__':
     # generate_repository_mod_json_file()
     # get_card_mod_info()
+    generate_mod_json_file_repository()
+    generate_mod_json_file_game()
     analysis_card()
