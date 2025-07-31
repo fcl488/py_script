@@ -44,26 +44,26 @@ def get_zip_mod_guid(mod_dir):
 
 
 # 生成mod的guid和mod路径映射json
-def generate_mod_json_file(mod_path):
+def generate_mod_json_file(mod_path, mod_json_path):
     kk_mod_map = {}
     for zipmod_path in Path(mod_path).glob('**/*.zipmod'):
         zip_mod_data_map = get_zip_mod_guid(zipmod_path)
-        print(zip_mod_data_map)
+        logging.info(zip_mod_data_map)
         if zip_mod_data_map:
             kk_mod_map[zip_mod_data_map['guid']] = {'name': zip_mod_data_map['name'],
                                                     'mod_dir': get_relative_path(zipmod_path, mod_path)}
-    with open(MOD_REPOSITORY_JSON_PATH, "w", encoding="utf-8") as f:
+    with open(mod_json_path, "w", encoding="utf-8") as f:
         json.dump(kk_mod_map, f, indent=4, ensure_ascii=False)  # ensure_ascii=False 支持中文
 
 
 # 仓库生成mod的guid和mod路径映射json
 def generate_mod_json_file_repository():
-    generate_mod_json_file(MOD_REPOSITORY_PATH)
+    generate_mod_json_file(MOD_REPOSITORY_PATH, MOD_REPOSITORY_JSON_PATH)
 
 
 # 游戏生成mod的guid和mod路径映射json
 def generate_mod_json_file_game():
-    generate_mod_json_file(GAME_MOD_PATH)
+    generate_mod_json_file(GAME_MOD_PATH, GAME_MOD_JSON_PATH)
 
 
 # 去掉根路径
@@ -90,11 +90,7 @@ def get_card_mod_info(card_path):
 
 
 def save_card_mod_info(card_mod_info_dir, base_path, file_name):
-    s = ''
-    for guid in card_mod_info_dir.keys():
-        s = s + guid + ':\t' + str(card_mod_info_dir[guid]) + '\n\n'
     with open(os.path.join(base_path, file_name), 'w', encoding='utf-8') as f:
-        # f.write(s)
         json.dump(card_mod_info_dir, f, ensure_ascii=False, indent=4)
 
 
@@ -130,6 +126,7 @@ def load_mod_game_json_file():
         return None
 
 
+# 保存缺失的mod的数据 位置在当前脚本目录下
 def save_missing_mod_info_json_file(missing_mod_map):
     file_name = os.path.splitext(os.path.basename(GAME_CARD_PATH))[0] + ".missing.json"
     with open(file_name, "w", encoding="utf-8") as f:
@@ -153,7 +150,7 @@ def analysis_card():
     missing_mod_map = {}
     missing_mod_flag = False
     if len(missing_mod_set) == 0:
-        print("当前卡片在本游戏mod资源中无缺失")
+        logging.info("当前卡片在本游戏mod资源中无缺失")
     else:
         for mod in missing_mod_set:
             if mod in repository_mod_json:
@@ -167,8 +164,6 @@ def analysis_card():
 
 
 if __name__ == '__main__':
-    # generate_repository_mod_json_file()
-    # get_card_mod_info()
     generate_mod_json_file_repository()
     generate_mod_json_file_game()
     analysis_card()
