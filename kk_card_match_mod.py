@@ -25,7 +25,7 @@ def get_zip_mod_guid(mod_dir):
             xml_files = [f for f in file_list if f.lower().endswith('.xml')]
 
             if not xml_files:
-                print("ZIP 文件中没有 XML 文件")
+                logging.info("ZIP 文件中没有 XML 文件")
                 return None
             else:
                 # 读取第一个 XML 文件
@@ -39,7 +39,7 @@ def get_zip_mod_guid(mod_dir):
                     # print(result)
                     return result
     except Exception as e:
-        print(e)
+        logging.info(e)
         return None
 
 
@@ -87,6 +87,18 @@ def get_card_mod_info(card_path):
         # print(info[start:end].decode('utf-8'))
         mod_set.add(info[start:end].decode('utf-8'))
     return mod_set
+
+
+# 去除mod的guid的首尾空格
+def fix_card_mod_guid(card_path):
+    kc = KoikatuCharaData.load(card_path)
+    start = 8
+    mod_info_list = kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info']
+    for i in range(len(mod_info_list)):
+        end = mod_info_list[i].find(b'\xa4', start)
+        mod_info_list[i] = mod_info_list[i][:start] + mod_info_list[i][start:end].decode('utf-8').strip().encode(
+            'utf-8') + mod_info_list[i][end:]
+    kc.save('Rat_Koikatu_F_20250714223150741_Yixuan.png')
 
 
 def save_card_mod_info(card_mod_info_dir, base_path, file_name):
@@ -164,6 +176,7 @@ def analysis_card():
 
 
 if __name__ == '__main__':
-    generate_mod_json_file_repository()
-    generate_mod_json_file_game()
-    analysis_card()
+    # generate_mod_json_file_repository()
+    # generate_mod_json_file_game()
+    # analysis_card()
+    fix_card_mod_guid(GAME_CARD_PATH)
