@@ -83,7 +83,7 @@ def get_card_mod_info(card_path):
     # print(kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info'])
     # print(type(kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info'][0]))
     for info in kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info']:
-        end = info.find(b'\xa4', start)
+        end = info.find(b'\xa4Slot', start)
         # print(info[start:end].decode('utf-8'))
         mod_set.add(info[start:end].decode('utf-8'))
     return mod_set
@@ -95,7 +95,7 @@ def fix_card_mod_guid(card_path):
     start = 8
     mod_info_list = kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info']
     for i in range(len(mod_info_list)):
-        end = mod_info_list[i].find(b'\xa4', start)
+        end = mod_info_list[i].find(b'\xa4Slot', start)
         mod_info_list[i] = mod_info_list[i][:start] + mod_info_list[i][start:end].decode('utf-8').strip().encode(
             'utf-8') + mod_info_list[i][end:]
     kc.save('Rat_Koikatu_F_20250714223150741_Yixuan.png')
