@@ -3,11 +3,12 @@ import sys
 import os
 import time
 
+from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QPushButton,
                                QFileDialog, QLabel, QMessageBox, QTableWidget, QAbstractItemView,
-                               QHeaderView, QTableWidgetItem)
-from PySide6.QtCore import Qt
+                               QHeaderView, QTableWidgetItem, QMenu)
+from PySide6.QtCore import Qt, QPoint
 import json
 import kk_card_match_mod as kk_core
 
@@ -130,13 +131,75 @@ class ImageAnalyzerApp(QMainWindow):
         # 设置表格属性
         self.table_widget.setShowGrid(True)  # 显示网格线
         self.table_widget.setAlternatingRowColors(True)  # 交替行颜色
-        self.table_widget.setSelectionBehavior(QAbstractItemView.SelectRows)
+        self.table_widget.setSelectionBehavior(QAbstractItemView.SelectItems)
         self.table_widget.setEditTriggers(QAbstractItemView.NoEditTriggers)
 
         # 设置列宽自适应
         header = self.table_widget.horizontalHeader()
         header.setSectionResizeMode(0, QHeaderView.Stretch)  # 第一列自适应
         header.setSectionResizeMode(1, QHeaderView.ResizeToContents)  # 第二列根据内容调整
+
+        # 添加复制功能支持
+        self.setup_copy_function()
+
+    def setup_copy_function(self):
+        """设置复制功能"""
+        # 添加快捷键
+        copy_shortcut = QShortcut(QKeySequence.Copy, self.table_widget)
+        copy_shortcut.activated.connect(self.copy_table_content)
+
+        # 设置右键菜单
+        self.table_widget.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.table_widget.customContextMenuRequested.connect(self.show_table_context_menu)
+
+    def show_table_context_menu(self, position: QPoint):
+        """显示表格右键菜单"""
+        menu = QMenu(self)
+        copy_action = menu.addAction("复制")
+        copy_action.triggered.connect(self.copy_table_content)
+        menu.exec_(self.table_widget.viewport().mapToGlobal(position))
+
+    def copy_table_content(self):
+        """复制表格选中的内容 - 精确复制选中的单元格"""
+        selected_items = self.table_widget.selectedItems()
+        if not selected_items:
+            return
+
+        # 如果只选中了一个单元格，直接复制该单元格内容
+        if len(selected_items) == 1:
+            cell_text = selected_items[0].text()
+            QApplication.clipboard().setText(cell_text)
+            logging.info("单元格内容已复制到剪贴板")
+            return
+
+        # 如果选中了多个单元格，按行列组织内容
+        # 获取所有选中单元格的行列信息
+        rows = sorted(set(item.row() for item in selected_items))
+        cols = sorted(set(item.column() for item in selected_items))
+
+        # 创建一个二维数组来存储内容
+        max_row = max(rows)
+        max_col = max(cols)
+
+        # 初始化一个二维数组，用空字符串填充
+        content_grid = [['' for _ in range(max_col + 1)] for _ in range(max_row + 1)]
+
+        # 填充选中单元格的内容
+        for item in selected_items:
+            content_grid[item.row()][item.column()] = item.text()
+
+        # 只处理有选中内容的行和列
+        copied_text = ""
+        for row in rows:
+            row_text = []
+            for col in cols:
+                row_text.append(content_grid[row][col])
+            copied_text += "\t".join(row_text) + "\n"
+
+        # 复制到剪贴板
+        if copied_text:
+            QApplication.clipboard().setText(copied_text.strip())
+            logging.info("内容已复制到剪贴板")
 
     def add_result_item(self, filename, result):
         """向表格中添加解析结果"""
@@ -312,6 +375,8 @@ class ImageAnalyzerApp(QMainWindow):
 
     def closeEvent(self, event):
         """重写关闭事件，在程序退出前自动保存配置"""
+        if os.path.exists(os.path.join(os.getcwd(), self.config_file_name)):
+            return
         if self.mod_repository_path or self.mod_game_path:
             reply = QMessageBox.question(
                 self,
