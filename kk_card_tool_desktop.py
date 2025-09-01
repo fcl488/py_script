@@ -250,7 +250,7 @@ class ImageAnalyzerApp(QMainWindow):
                         missing_mod_flag = True
                 # 将结果渲染到列表中
                 self.clear_table()
-                for mod, mod_dir in missing_mod_map:
+                for mod, mod_dir in missing_mod_map.items():
                     self.add_result_item(mod, mod_dir)
 
                 if missing_mod_flag:
