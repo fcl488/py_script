@@ -1,4 +1,5 @@
 import logging
+import shutil
 import sys
 import os
 import time
@@ -7,7 +8,7 @@ from PySide6.QtGui import QShortcut, QKeySequence
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QPushButton,
                                QFileDialog, QLabel, QMessageBox, QTableWidget, QAbstractItemView,
-                               QHeaderView, QTableWidgetItem, QMenu)
+                               QHeaderView, QTableWidgetItem, QMenu, QSizePolicy)
 from PySide6.QtCore import Qt, QPoint
 import json
 import kk_card_match_mod as kk_core
@@ -19,12 +20,64 @@ class ImageAnalyzerApp(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.logger = None
         self.mod_repository_path = ""
         self.mod_game_path = ""
         self.card_path = ""
+        self.missing_mod_map = {}
         self.results = []
+        self.setup_logging()
         self.init_ui()
         self.load_config()
+
+    def setup_logging(self):
+
+        # 清除之前的日志处理器
+        logging.getLogger().handlers.clear()
+
+        # 创建格式化器
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
+        # 创建处理器列表
+        handlers = []
+
+        # 总是添加控制台处理器
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(formatter)
+        handlers.append(console_handler)
+
+        log_path = None
+
+        if getattr(sys, 'frozen', False):
+            # 如果是打包后的exe
+            base_dir = os.path.dirname(sys.executable)
+            # 使用固定的日志文件名
+            log_filename = 'kk_card_tool.log'
+            log_path = os.path.join(base_dir, log_filename)
+
+            # 创建文件处理器（追加模式）
+            file_handler = logging.FileHandler(log_path, encoding='utf-8', mode='a')
+            file_handler.setFormatter(formatter)
+            handlers.append(file_handler)
+
+        # 配置logging
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            handlers=handlers
+        )
+
+        self.logger = logging.getLogger('KK_CARD_TOOL')
+
+        self.logger.info('=' * 60)
+        self.logger.info('KK CARD TOOL START')
+        if getattr(sys, 'frozen', False):
+            self.logger.info(f'RUNNING ACTIVE: EXE')
+            self.logger.info(f'LOG PATH: {log_path}')
+        else:
+            self.logger.info(f'RUNNING ACTIVE: 脚本')
+            self.logger.info(f'LOG OUT: TERMINAL')
+        self.logger.info('=' * 60)
 
     def init_ui(self):
         self.setWindowTitle('KK CARD TOOL')
@@ -89,6 +142,18 @@ class ImageAnalyzerApp(QMainWindow):
         path_layout.addWidget(self.label_image)
 
         main_layout.addLayout(path_layout)
+
+        # 按钮区域2
+        button_layout2 = QHBoxLayout()
+        # 靠右
+        button_layout2.setAlignment(Qt.AlignRight)
+        # 一键复制mod按钮
+        self.btn_cp_mod = QPushButton('一键复制缺失mod')
+        self.btn_cp_mod.clicked.connect(self.cp_mod)
+        self.btn_cp_mod.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
+        self.btn_cp_mod.setMinimumWidth(120)
+        button_layout2.addWidget(self.btn_cp_mod)
+        main_layout.addLayout(button_layout2)
 
         # 解析结果table
         self.setup_table()
@@ -169,7 +234,7 @@ class ImageAnalyzerApp(QMainWindow):
         if len(selected_items) == 1:
             cell_text = selected_items[0].text()
             QApplication.clipboard().setText(cell_text)
-            logging.info("单元格内容已复制到剪贴板")
+            self.logger.info("单元格内容已复制到剪贴板")
             return
 
         # 如果选中了多个单元格，按行列组织内容
@@ -199,7 +264,7 @@ class ImageAnalyzerApp(QMainWindow):
         # 复制到剪贴板
         if copied_text:
             QApplication.clipboard().setText(copied_text.strip())
-            logging.info("内容已复制到剪贴板")
+            self.logger.info("内容已复制到剪贴板")
 
     def add_result_item(self, filename, result):
         """向表格中添加解析结果"""
@@ -236,7 +301,7 @@ class ImageAnalyzerApp(QMainWindow):
             kk_core.generate_mod_json_file(self.mod_repository_path,
                                            os.path.join(self.mod_repository_path, self.mod_file_name))
         except Exception as e:
-            logging.info("mod仓库json生成失败：{}", e)
+            self.logger.info("mod仓库json生成失败：{}", e)
             QMessageBox.critical(self, "错误", "mod仓库json生成失败")
 
     def generate_mod_game_json(self):
@@ -247,7 +312,7 @@ class ImageAnalyzerApp(QMainWindow):
             kk_core.generate_mod_json_file(self.mod_game_path,
                                            os.path.join(self.mod_game_path, self.mod_file_name))
         except Exception as e:
-            logging.info("游戏mod信息json生成失败：{}", e)
+            self.logger.info("游戏mod信息json生成失败：{}", e)
             QMessageBox.critical(self, "错误", "游戏mod信息json生成失败")
 
     def select_folder2(self):
@@ -299,25 +364,25 @@ class ImageAnalyzerApp(QMainWindow):
         try:
             card_mod_info = kk_core.get_card_mod_info(self.card_path)
             missing_mod_set = card_mod_info - game_mod_json.keys()
-            missing_mod_map = {}
+            self.missing_mod_map = {}
             missing_mod_flag = False
             if len(missing_mod_set) == 0:
-                logging.info("当前卡片在本游戏mod资源中无缺失")
+                self.logger.info("当前卡片在本游戏mod资源中无缺失")
                 QMessageBox.information(self, "success", "当前卡片在本游戏mod资源中无缺失")
             else:
                 for mod in missing_mod_set:
                     if mod in repository_mod_json:
-                        missing_mod_map[mod] = repository_mod_json.get(mod)['mod_dir']
+                        self.missing_mod_map[mod] = repository_mod_json.get(mod)['mod_dir']
                     else:
-                        missing_mod_map[mod] = "Not Found"
+                        self.missing_mod_map[mod] = "Not Found"
                         missing_mod_flag = True
                 # 将结果渲染到列表中
                 self.clear_table()
-                for mod, mod_dir in missing_mod_map.items():
+                for mod, mod_dir in self.missing_mod_map.items():
                     self.add_result_item(mod, mod_dir)
 
                 if missing_mod_flag:
-                    logging.info("仓库中存在当前卡片不存在的mod，请更新仓库mod信息")
+                    self.logger.info("仓库中存在当前卡片不存在的mod，请更新仓库mod信息")
                     QMessageBox.warning(self, "提示", "仓库中存在当前卡片不存在的mod，请更新仓库mod信息")
         except Exception as e:
             QMessageBox.critical(self, "错误", f"解析过程中出现错误: {str(e)}")
@@ -365,13 +430,37 @@ class ImageAnalyzerApp(QMainWindow):
                     self.mod_game_path = config_data["mod_game_path"]
                     self.label_folder2.setText(f'游戏mod路径: {self.mod_game_path}')
 
-                logging.info("配置文件加载成功")
+                self.logger.info("配置文件加载成功")
             else:
-                logging.info("配置文件不存在，跳过加载")
+                self.logger.info("配置文件不存在，跳过加载")
 
         except Exception as e:
-            logging.info(f"读取配置文件时出错: {str(e)}")
+            self.logger.info(f"读取配置文件时出错: {str(e)}")
             pass
+
+    def cp_mod(self):
+        if len(self.missing_mod_map) == 0:
+            QMessageBox.warning(self, "提示", "不存在缺失mod需要复制")
+            return
+        unknown_mod = {}
+        for mod, mod_dir in self.missing_mod_map.items():
+            if "Not Found" == mod_dir:
+                unknown_mod[mod] = mod_dir
+            else:
+                source_path = os.path.join(self.mod_repository_path, mod_dir)
+                target_path = os.path.join(self.mod_game_path, mod_dir)
+                self.copy_file_with_dirs(source_path, target_path)
+        if len(unknown_mod) > 0:
+            QMessageBox.warning(self, "提示", "存在仓库无法匹配的mod，请手动确认")
+
+    def copy_file_with_dirs(self, source_path, target_path):
+        if os.path.exists(target_path):
+            self.logger.info("{} exists".format(target_path))
+            return
+        dest_dir = os.path.dirname(target_path)
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir)
+        shutil.copy(source_path, target_path)
 
     def closeEvent(self, event):
         """重写关闭事件，在程序退出前自动保存配置"""
