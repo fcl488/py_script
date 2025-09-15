@@ -300,6 +300,7 @@ class ImageAnalyzerApp(QMainWindow):
         try:
             kk_core.generate_mod_json_file(self.mod_repository_path,
                                            os.path.join(self.mod_repository_path, self.mod_file_name))
+            QMessageBox.information(self, "success", "仓库mod数据生成完毕")
         except Exception as e:
             self.logger.info("mod仓库json生成失败：{}", e)
             QMessageBox.critical(self, "错误", "mod仓库json生成失败")
@@ -311,6 +312,7 @@ class ImageAnalyzerApp(QMainWindow):
         try:
             kk_core.generate_mod_json_file(self.mod_game_path,
                                            os.path.join(self.mod_game_path, self.mod_file_name))
+            QMessageBox.information(self, "success", "游戏mod数据生成完毕")
         except Exception as e:
             self.logger.info("游戏mod信息json生成失败：{}", e)
             QMessageBox.critical(self, "错误", "游戏mod信息json生成失败")
