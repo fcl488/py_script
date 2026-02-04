@@ -23,7 +23,10 @@ class ImageAnalyzerApp(QMainWindow):
         self.logger = None
         self.mod_repository_path = ""
         self.mod_game_path = ""
+        self.mod_repository_data_cache = None
+        self.mod_game_data_cache = None
         self.card_path = ""
+        self.current_card_mod_map = {}
         self.missing_mod_map = {}
         self.results = []
         self.setup_logging()
@@ -153,6 +156,22 @@ class ImageAnalyzerApp(QMainWindow):
         self.btn_cp_mod.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
         self.btn_cp_mod.setMinimumWidth(120)
         button_layout2.addWidget(self.btn_cp_mod)
+        main_layout.addLayout(button_layout2)
+
+        # 展示当前卡片的mod信息
+        self.btn_show_mod = QPushButton('展示卡片mod信息')
+        self.btn_show_mod.clicked.connect(self.show_current_card_mod_info)
+        self.btn_show_mod.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
+        self.btn_show_mod.setMinimumWidth(120)
+        button_layout2.addWidget(self.btn_show_mod)
+        main_layout.addLayout(button_layout2)
+
+        # 展示当前卡片缺失的mod信息
+        self.btn_show_mod = QPushButton('卡片缺失mod信息')
+        self.btn_show_mod.clicked.connect(self.show_current_card_missing_mod_info)
+        self.btn_show_mod.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
+        self.btn_show_mod.setMinimumWidth(120)
+        button_layout2.addWidget(self.btn_show_mod)
         main_layout.addLayout(button_layout2)
 
         # 解析结果table
@@ -352,20 +371,27 @@ class ImageAnalyzerApp(QMainWindow):
     def analyze_image(self):
         """解析图片的逻辑"""
         try:
-            repository_mod_json = self.load_mod_repository_json_file()
+            if self.mod_repository_data_cache is None:
+                self.mod_repository_data_cache = self.load_mod_repository_json_file()
         except:
             QMessageBox.critical(self, "错误", "请先生成仓库mod信息")
             return
 
         try:
-            game_mod_json = self.load_mod_game_json_file()
+            if self.mod_game_data_cache is None:
+                self.mod_game_data_cache = self.load_mod_game_json_file()
         except:
             QMessageBox.critical(self, "错误", "请先生成仓库mod信息")
             return
 
         try:
             card_mod_info = kk_core.get_card_mod_info(self.card_path)
-            missing_mod_set = card_mod_info - game_mod_json.keys()
+            for mod in card_mod_info:
+                if mod in self.mod_game_data_cache:
+                    self.current_card_mod_map[mod] = self.mod_game_data_cache[mod]
+                else:
+                    self.current_card_mod_map[mod] = "当前mod在游戏中不存在"
+            missing_mod_set = card_mod_info - self.mod_game_data_cache.keys()
             self.missing_mod_map = {}
             missing_mod_flag = False
             if len(missing_mod_set) == 0:
@@ -373,8 +399,8 @@ class ImageAnalyzerApp(QMainWindow):
                 QMessageBox.information(self, "success", "当前卡片在本游戏mod资源中无缺失")
             else:
                 for mod in missing_mod_set:
-                    if mod in repository_mod_json:
-                        self.missing_mod_map[mod] = repository_mod_json.get(mod)['mod_dir']
+                    if mod in self.mod_repository_data_cache:
+                        self.missing_mod_map[mod] = self.mod_repository_data_cache.get(mod)['mod_dir']
                     else:
                         self.missing_mod_map[mod] = "Not Found"
                         missing_mod_flag = True
@@ -463,6 +489,22 @@ class ImageAnalyzerApp(QMainWindow):
         if not os.path.exists(dest_dir):
             os.makedirs(dest_dir)
         shutil.copy(source_path, target_path)
+
+    def show_current_card_mod_info(self):
+        if len(self.current_card_mod_map) == 0:
+            QMessageBox.warning(self, "提示", "请选择卡片")
+            return
+        self.clear_table()
+        for mod, mod_dir in self.current_card_mod_map.items():
+            self.add_result_item(mod, mod_dir)
+
+    def show_current_card_missing_mod_info(self):
+        if len(self.missing_mod_map) == 0:
+            QMessageBox.warning(self, "提示", "请选择卡片")
+            return
+        self.clear_table()
+        for mod, mod_dir in self.missing_mod_map.items():
+            self.add_result_item(mod, mod_dir)
 
     def closeEvent(self, event):
         """重写关闭事件，在程序退出前自动保存配置"""
