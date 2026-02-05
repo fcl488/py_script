@@ -5,7 +5,7 @@ a = Analysis(
     ['kk_card_tool_desktop.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('favicon.ico', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
