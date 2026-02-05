@@ -4,7 +4,7 @@ import sys
 import os
 import time
 
-from PySide6.QtGui import QShortcut, QKeySequence
+from PySide6.QtGui import QShortcut, QKeySequence, QIcon
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
                                QHBoxLayout, QPushButton,
                                QFileDialog, QLabel, QMessageBox, QTableWidget, QAbstractItemView,
@@ -85,6 +85,7 @@ class ImageAnalyzerApp(QMainWindow):
     def init_ui(self):
         self.setWindowTitle('KK CARD TOOL')
         self.setGeometry(100, 100, 800, 600)
+        self.setWindowIcon(QIcon('favicon.ico'))
 
         # 中央部件
         central_widget = QWidget()
@@ -167,11 +168,19 @@ class ImageAnalyzerApp(QMainWindow):
         main_layout.addLayout(button_layout2)
 
         # 展示当前卡片缺失的mod信息
-        self.btn_show_mod = QPushButton('卡片缺失mod信息')
-        self.btn_show_mod.clicked.connect(self.show_current_card_missing_mod_info)
-        self.btn_show_mod.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
-        self.btn_show_mod.setMinimumWidth(120)
-        button_layout2.addWidget(self.btn_show_mod)
+        self.btn_show_miss_mod = QPushButton('卡片缺失mod信息')
+        self.btn_show_miss_mod.clicked.connect(self.show_current_card_missing_mod_info)
+        self.btn_show_miss_mod.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
+        self.btn_show_miss_mod.setMinimumWidth(120)
+        button_layout2.addWidget(self.btn_show_miss_mod)
+        main_layout.addLayout(button_layout2)
+
+        # 重新解析卡片按钮
+        self.btn_analyze_card = QPushButton('重新解析卡片')
+        self.btn_analyze_card.clicked.connect(self.analyze_image)
+        self.btn_analyze_card.setSizePolicy(QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Preferred))
+        self.btn_analyze_card.setMinimumWidth(120)
+        button_layout2.addWidget(self.btn_analyze_card)
         main_layout.addLayout(button_layout2)
 
         # 解析结果table
