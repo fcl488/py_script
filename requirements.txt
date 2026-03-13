@@ -1,0 +1,4 @@
+kkloader==0.1.20
+pyside6==6.10.2
+pyside6_addons==6.10.2
+pyside6_essentials==6.10.2
