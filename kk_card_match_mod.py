@@ -1,10 +1,12 @@
 import json
 import os
 import zipfile
+from enum import Enum
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from kkloader import KoikatuCharaData
 import logging
+from kk_clothes_pares import KKClothData
 
 logging.basicConfig(level=logging.INFO)
 
@@ -13,6 +15,11 @@ MOD_REPOSITORY_PATH = "D:\\ForCharactersLoading"
 GAME_MOD_JSON_PATH = "D:\\ForCharactersLoading\\kk_mod.json"
 GAME_MOD_PATH = "D:\\ForCharactersLoading"
 GAME_CARD_PATH = "D:\\BaiduNetdiskDownload\\Rat_Koikatu_F_20250714223150741_Yixuan.png"
+
+
+class CardType(Enum):
+    CHARACTER = 0
+    CLOTHES = 1
 
 
 def get_zip_mod_guid(mod_dir):
@@ -48,10 +55,10 @@ def generate_mod_json_file(mod_path, mod_json_path):
     kk_mod_map = {}
     for zipmod_path in Path(mod_path).glob('**/*.zipmod'):
         zip_mod_data_map = get_zip_mod_guid(zipmod_path)
-        logging.info(zip_mod_data_map)
         if zip_mod_data_map:
             kk_mod_map[zip_mod_data_map['guid']] = {'name': zip_mod_data_map['name'],
                                                     'mod_dir': get_relative_path(zipmod_path, mod_path)}
+    logging.info(f"本次共扫描%s个mod", len(kk_mod_map))
     with open(mod_json_path, "w", encoding="utf-8") as f:
         json.dump(kk_mod_map, f, indent=4, ensure_ascii=False)  # ensure_ascii=False 支持中文
 
@@ -74,18 +81,25 @@ def get_relative_path(full_path, root_path):
         return full_path  # 或者返回原路径
 
 
-def get_card_mod_info(card_path):
-    kc = KoikatuCharaData.load(card_path)
-    start = 8
+def get_card_mod_info(card_path, card_type: CardType):
     mod_set = set()
-    # /xa4 结尾
-    # print(kc['KKEx']['data']['com.bepis.sideloader.universalautoresolver'][1]['info'])
-    # print(kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info'])
-    # print(type(kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info'][0]))
-    for info in kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info']:
-        end = info.find(b'\xa4Slot', start)
-        # print(info[start:end].decode('utf-8'))
-        mod_set.add(info[start:end].decode('utf-8'))
+    if card_type == CardType.CHARACTER:
+        kc = KoikatuCharaData.load(card_path)
+        start = 8
+        # /xa4 结尾
+        # print(kc['KKEx']['data']['com.bepis.sideloader.universalautoresolver'][1]['info'])
+        # print(kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info'])
+        # print(type(kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info'][0]))
+        for info in kc['KKEx']['com.bepis.sideloader.universalautoresolver'][1]['info']:
+            end = info.find(b'\xa4Slot', start)
+            # print(info[start:end].decode('utf-8'))
+            mod_set.add(info[start:end].decode('utf-8'))
+    if card_type == CardType.CLOTHES:
+        kc = KKClothData.pares_cloth_card(card_path)
+        logging.info("服装卡解析结果：%s", kc)
+        if not kc.has_clothes_card:
+            raise Exception("该图片不是服装卡")
+        mod_set = kc.card_mod_set
     return mod_set
 
 
@@ -157,7 +171,7 @@ def analysis_card():
         logging.info("无游戏mod的json文件，请先生成游戏mod的json文件")
         return
     # 获取卡片mod信息
-    card_mod_info = get_card_mod_info(GAME_CARD_PATH)
+    card_mod_info = get_card_mod_info(GAME_CARD_PATH, CardType.CHARACTER)
     missing_mod_set = card_mod_info - game_mod_json.keys()
     missing_mod_map = {}
     missing_mod_flag = False

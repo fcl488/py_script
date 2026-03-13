@@ -26,6 +26,7 @@ class ImageAnalyzerApp(QMainWindow):
         self.mod_repository_data_cache = None
         self.mod_game_data_cache = None
         self.card_path = ""
+        self.card_type = kk_core.CardType.CHARACTER
         self.current_card_mod_map = {}
         self.missing_mod_map = {}
         self.results = []
@@ -117,15 +118,15 @@ class ImageAnalyzerApp(QMainWindow):
         self.btn_generate_mod_game_json.clicked.connect(self.generate_mod_game_json)
         button_layout.addWidget(self.btn_generate_mod_game_json)
 
-        # 第三个按钮：选择图片
+        # 第三个按钮：人物卡图片
         self.btn_image = QPushButton('请选择人物卡')
-        self.btn_image.clicked.connect(self.select_image)
+        self.btn_image.clicked.connect(self.select_chara_image)
         button_layout.addWidget(self.btn_image)
 
-        # 第四个按钮：解析图片
-        # self.btn_analyze = QPushButton('获取人物卡mod信息')
-        # self.btn_analyze.clicked.connect(self.analyze_image)
-        # button_layout.addWidget(self.btn_analyze)
+        # 第四个按钮：服装卡图片
+        self.btn_clothes = QPushButton('请选择服装卡')
+        self.btn_clothes.clicked.connect(self.select_clothes_image)
+        button_layout.addWidget(self.btn_clothes)
 
         # 第五个按钮：保存路径
         self.btn_save = QPushButton('保存路径配置信息')
@@ -139,11 +140,13 @@ class ImageAnalyzerApp(QMainWindow):
 
         self.label_folder1 = QLabel('mod仓库路径: 未选择')
         self.label_folder2 = QLabel('游戏mod路径: 未选择')
-        self.label_image = QLabel('人物卡路径: 未选择')
+        self.label_chara_image_path = QLabel('人物卡路径: 未选择')
+        self.label_clothes_image_path = QLabel('服装卡路径: 未选择')
 
         path_layout.addWidget(self.label_folder1)
         path_layout.addWidget(self.label_folder2)
-        path_layout.addWidget(self.label_image)
+        path_layout.addWidget(self.label_chara_image_path)
+        path_layout.addWidget(self.label_clothes_image_path)
 
         main_layout.addLayout(path_layout)
 
@@ -326,8 +329,11 @@ class ImageAnalyzerApp(QMainWindow):
             QMessageBox.warning(self, "警告", "请先选择mod仓库路径！")
             return
         try:
+            # 扫描本地mod记录在json文件中
             kk_core.generate_mod_json_file(self.mod_repository_path,
                                            os.path.join(self.mod_repository_path, self.mod_file_name))
+            # 更新软件缓存mod信息
+            self.load_mod_repository_json_file()
             QMessageBox.information(self, "success", "仓库mod数据生成完毕")
         except Exception as e:
             self.logger.info("mod仓库json生成失败：{}", e)
@@ -338,8 +344,11 @@ class ImageAnalyzerApp(QMainWindow):
             QMessageBox.warning(self, "警告", "请先选择游戏mod路径！")
             return
         try:
+            # 扫描本地mod记录在json文件中
             kk_core.generate_mod_json_file(self.mod_game_path,
                                            os.path.join(self.mod_game_path, self.mod_file_name))
+            # 更新软件缓存mod信息
+            self.load_mod_game_json_file()
             QMessageBox.information(self, "success", "游戏mod数据生成完毕")
         except Exception as e:
             self.logger.info("游戏mod信息json生成失败：{}", e)
@@ -352,15 +361,28 @@ class ImageAnalyzerApp(QMainWindow):
             self.mod_game_path = folder_path
             self.label_folder2.setText(f'游戏mod路径: {folder_path}')
 
-    def select_image(self):
+    def select_chara_image(self):
         """选择图片文件"""
         file_path, _ = QFileDialog.getOpenFileName(
             self, "选择图片", "", "图片文件 (*.png)"
         )
         if file_path:
             self.card_path = file_path
-            self.label_image.setText(f'图片路径: {file_path}')
+            self.label_chara_image_path.setText(f'人物卡路径: {file_path}')
+            self.label_clothes_image_path.setText(f'服装卡路径: 未选择')
+            self.card_type = kk_core.CardType.CHARACTER
+            self.analyze_image()
 
+    def select_clothes_image(self):
+        """选择图片文件"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "选择图片", "", "图片文件 (*.png)"
+        )
+        if file_path:
+            self.card_path = file_path
+            self.label_chara_image_path.setText(f'人物卡路径: 未选择')
+            self.label_clothes_image_path.setText(f'服装卡路径: {file_path}')
+            self.card_type = kk_core.CardType.CLOTHES
             self.analyze_image()
 
     # 加载仓库的mod json数据
@@ -394,7 +416,8 @@ class ImageAnalyzerApp(QMainWindow):
             return
 
         try:
-            card_mod_info = kk_core.get_card_mod_info(self.card_path)
+            card_mod_info = kk_core.get_card_mod_info(self.card_path, self.card_type)
+            self.current_card_mod_map = {}
             for mod in card_mod_info:
                 mod = mod.strip(" !$")
                 if mod in self.mod_game_data_cache:
