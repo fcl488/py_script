@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='kk_card_tool',
+    name='kkCardTool',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
