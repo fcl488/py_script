@@ -419,7 +419,7 @@ class ImageAnalyzerApp(QMainWindow):
             card_mod_info = kk_core.get_card_mod_info(self.card_path, self.card_type)
             self.current_card_mod_map = {}
             for mod in card_mod_info:
-                mod = mod.strip(" !$'")
+                mod = mod.strip(" !$'\"")
                 if mod in self.mod_game_data_cache:
                     self.current_card_mod_map[mod] = self.mod_game_data_cache[mod]
                 else:

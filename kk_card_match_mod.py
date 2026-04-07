@@ -193,4 +193,8 @@ if __name__ == '__main__':
     # generate_mod_json_file_repository()
     # generate_mod_json_file_game()
     # analysis_card()
-    fix_card_mod_guid(GAME_CARD_PATH)
+    # fix_card_mod_guid(GAME_CARD_PATH)
+    mod_set = get_card_mod_info("D:\\BaiduNetdiskDownload\\重绘幽兰戴尔\\重绘幽兰黛尔.png", CardType.CHARACTER)
+    for mod_info in mod_set:
+        print(mod_info)
+
