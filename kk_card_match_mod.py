@@ -5,10 +5,10 @@ from enum import Enum
 from pathlib import Path
 from xml.etree import ElementTree as ET
 from kkloader import KoikatuCharaData
-import logging
+from logger_handler import get_logger
 from kk_clothes_pares import KKClothData
 
-logging.basicConfig(level=logging.INFO)
+logger = get_logger()
 
 MOD_REPOSITORY_JSON_PATH = "D:\\kk_mod.json"
 MOD_REPOSITORY_PATH = "D:\\ForCharactersLoading"
@@ -32,7 +32,7 @@ def get_zip_mod_guid(mod_dir):
             xml_files = [f for f in file_list if f.lower().endswith('.xml')]
 
             if not xml_files:
-                logging.info("ZIP 文件中没有 XML 文件")
+                logger.info("ZIP 文件中没有 XML 文件")
                 return None
             else:
                 # 读取第一个 XML 文件
@@ -46,7 +46,7 @@ def get_zip_mod_guid(mod_dir):
                     # print(result)
                     return result
     except Exception as e:
-        logging.info(e)
+        logger.info(e)
         return None
 
 
@@ -58,7 +58,7 @@ def generate_mod_json_file(mod_path, mod_json_path):
         if zip_mod_data_map:
             kk_mod_map[zip_mod_data_map['guid']] = {'name': zip_mod_data_map['name'],
                                                     'mod_dir': get_relative_path(zipmod_path, mod_path)}
-    logging.info(f"本次共扫描%s个mod", len(kk_mod_map))
+    logger.info(f"本次共扫描%s个mod", len(kk_mod_map))
     with open(mod_json_path, "w", encoding="utf-8") as f:
         json.dump(kk_mod_map, f, indent=4, ensure_ascii=False)  # ensure_ascii=False 支持中文
 
@@ -96,7 +96,7 @@ def get_card_mod_info(card_path, card_type: CardType):
             mod_set.add(info[start:end].decode('utf-8'))
     if card_type == CardType.CLOTHES:
         kc = KKClothData.pares_cloth_card(card_path)
-        logging.info("服装卡解析结果：%s", kc)
+        logger.info("服装卡解析结果：%s", kc)
         if not kc.has_clothes_card:
             raise Exception("该图片不是服装卡")
         mod_set = kc.card_mod_set
@@ -163,12 +163,12 @@ def analysis_card():
     # 获取仓库mod信息
     repository_mod_json = load_mod_repository_json_file()
     if repository_mod_json is None:
-        logging.info("无仓库mod的json文件，请先生成仓库mod的json文件")
+        logger.info("无仓库mod的json文件，请先生成仓库mod的json文件")
         return
     # 获取游戏mod信息
     game_mod_json = load_mod_game_json_file()
     if game_mod_json is None:
-        logging.info("无游戏mod的json文件，请先生成游戏mod的json文件")
+        logger.info("无游戏mod的json文件，请先生成游戏mod的json文件")
         return
     # 获取卡片mod信息
     card_mod_info = get_card_mod_info(GAME_CARD_PATH, CardType.CHARACTER)
@@ -176,7 +176,7 @@ def analysis_card():
     missing_mod_map = {}
     missing_mod_flag = False
     if len(missing_mod_set) == 0:
-        logging.info("当前卡片在本游戏mod资源中无缺失")
+        logger.info("当前卡片在本游戏mod资源中无缺失")
     else:
         for mod in missing_mod_set:
             if mod in repository_mod_json:
@@ -186,7 +186,7 @@ def analysis_card():
                 missing_mod_flag = True
         save_missing_mod_info_json_file(missing_mod_map)
         if missing_mod_flag:
-            logging.info("仓库中存在当前卡片不存在的mod，请更新仓库mod信息")
+            logger.info("仓库中存在当前卡片不存在的mod，请更新仓库mod信息")
 
 
 if __name__ == '__main__':

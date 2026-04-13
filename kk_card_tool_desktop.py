@@ -1,4 +1,3 @@
-import logging
 import shutil
 import sys
 import os
@@ -12,6 +11,7 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtCore import Qt, QPoint
 import json
 import kk_card_match_mod as kk_core
+from logger_handler import get_logger
 
 
 class ImageAnalyzerApp(QMainWindow):
@@ -36,48 +36,13 @@ class ImageAnalyzerApp(QMainWindow):
 
     def setup_logging(self):
 
-        # 清除之前的日志处理器
-        logging.getLogger().handlers.clear()
-
-        # 创建格式化器
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-        # 创建处理器列表
-        handlers = []
-
-        # 总是添加控制台处理器
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(formatter)
-        handlers.append(console_handler)
-
-        log_path = None
-
-        if getattr(sys, 'frozen', False):
-            # 如果是打包后的exe
-            base_dir = os.path.dirname(sys.executable)
-            # 使用固定的日志文件名
-            log_filename = 'kk_card_tool.log'
-            log_path = os.path.join(base_dir, log_filename)
-
-            # 创建文件处理器（追加模式）
-            file_handler = logging.FileHandler(log_path, encoding='utf-8', mode='a')
-            file_handler.setFormatter(formatter)
-            handlers.append(file_handler)
-
-        # 配置logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-            handlers=handlers
-        )
-
-        self.logger = logging.getLogger('KK_CARD_TOOL')
+        self.logger = get_logger()
 
         self.logger.info('=' * 60)
         self.logger.info('KK CARD TOOL START')
         if getattr(sys, 'frozen', False):
             self.logger.info(f'RUNNING ACTIVE: EXE')
-            self.logger.info(f'LOG PATH: {log_path}')
+            self.logger.info(f'LOG PATH: CURRENT DIRECTORY: {os.getcwd()}')
         else:
             self.logger.info(f'RUNNING ACTIVE: 脚本')
             self.logger.info(f'LOG OUT: TERMINAL')

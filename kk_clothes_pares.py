@@ -1,4 +1,5 @@
-import logging
+from logger_handler import get_logger
+
 import re
 from typing import Self
 
@@ -11,12 +12,10 @@ SKIP_AFTER_CHECK = 10  # 检测成功后再跳过10字节
 NAME_END_BYTES = b"\x28\x00\x00\xDF\x12\x00\x00"  # 卡片名结束标志
 STOP_TAG = b"<additionalAccessories"
 
-logging.basicConfig(level=logging.INFO)
-
 
 class KKClothData:
     def __init__(self):
-        self.logger = logging
+        self.logger = get_logger()
         self.has_clothes_card = False
         self.clothes_card_name = ""
         self.card_mod_set = set()
@@ -72,7 +71,7 @@ class KKClothData:
             card_name = card_name_bytes.decode("utf-8", errors="ignore").strip()
             kc.clothes_card_name = card_name
         except Exception as e:
-            logging.error("服装卡解析失败: %s", e)
+            self.logger.error("服装卡解析失败: %s", e)
             kc.clothes_card_name = f"二进制:{card_name_bytes.hex()}"
 
         ptr = end_pos  # 指针跳到结束标志后
