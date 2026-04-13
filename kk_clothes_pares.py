@@ -71,7 +71,7 @@ class KKClothData:
             card_name = card_name_bytes.decode("utf-8", errors="ignore").strip()
             kc.clothes_card_name = card_name
         except Exception as e:
-            self.logger.error("服装卡解析失败: %s", e)
+            kc.logger.error("服装卡解析失败: %s", e)
             kc.clothes_card_name = f"二进制:{card_name_bytes.hex()}"
 
         ptr = end_pos  # 指针跳到结束标志后
