@@ -386,7 +386,7 @@ class ImageAnalyzerApp(QMainWindow):
             for mod in card_mod_info:
                 mod = mod.strip(" !$'\"")
                 if mod in self.mod_game_data_cache:
-                    self.current_card_mod_map[mod] = self.mod_game_data_cache[mod]
+                    self.current_card_mod_map[mod] = self.mod_game_data_cache[mod]['mod_dir']
                 else:
                     self.current_card_mod_map[mod] = "当前mod在游戏中不存在"
             missing_mod_set = self.current_card_mod_map.keys() - self.mod_game_data_cache.keys()
@@ -394,6 +394,7 @@ class ImageAnalyzerApp(QMainWindow):
             missing_mod_flag = False
             if len(missing_mod_set) == 0:
                 self.logger.info("当前卡片在本游戏mod资源中无缺失")
+                self.show_current_card_mod_info()
                 QMessageBox.information(self, "success", "当前卡片在本游戏mod资源中无缺失")
             else:
                 for mod in missing_mod_set:
@@ -498,7 +499,10 @@ class ImageAnalyzerApp(QMainWindow):
 
     def show_current_card_missing_mod_info(self):
         if len(self.missing_mod_map) == 0:
-            QMessageBox.warning(self, "提示", "请选择卡片")
+            if self.card_path == '':
+                QMessageBox.warning(self, "提示", "请选择卡片")
+            else:
+                QMessageBox.warning(self, "提示", "当前人物卡暂无缺失mod")
             return
         self.clear_table()
         for mod, mod_dir in self.missing_mod_map.items():
